@@ -42,8 +42,19 @@ h2 { font-size: 1.6rem; margin: 40px 0 8px; }
 .note { color: var(--muted); font-size: .92rem; margin-top: 14px; }
 .status-banner { display: none; background: #3a1a1a; border: 1px solid #6b2a2a; color: #ffd2d2; border-radius: 12px; padding: 10px 14px; margin: 16px 0; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-pre { background: #0f1320; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; font-size: .88rem; }
+pre { tab-size: 4; background: #0f1320; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; font-size: .88rem; }
 table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .95rem; }
 th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 8px 6px; vertical-align: top; }
 footer.site { max-width: 1120px; margin: 0 auto; padding: 24px 16px 40px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); }
 @media (max-width: 640px) { nav.links { gap: 12px; font-size: .95rem; } .ghost { margin: 10px 0 0; } }
+.codetabs { margin: 12px 0 20px; }
+.tablist { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+.tablist [role=tab] { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); padding: 8px 12px; font: inherit; cursor: pointer; margin-bottom: -1px; }
+.tablist [role=tab]:hover { color: var(--text); }
+.tablist [role=tab][aria-selected="true"] { color: var(--text); border-bottom-color: var(--cyan); }
+.tablist [role=tab]:focus-visible, .copy:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.panel .setup { color: var(--muted); font-size: .88rem; margin: 10px 0 6px; overflow-wrap: anywhere; }
+.codeblock { position: relative; }
+.codeblock pre { padding-right: 76px; }
+.copy { position: absolute; top: 8px; right: 8px; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font: 600 .8rem system-ui, sans-serif; cursor: pointer; }
+.copy:hover { border-color: var(--cyan); }

@@ -69,26 +69,233 @@ Authorization: Bearer &lt;your key&gt;</pre>
   <h2>5. Catch-up (Pro and Fast Lane)</h2>
   <p>Turn on catch-up in the bot (⚙️ Settings), then reconnect with <code>?since=&lt;ms timestamp&gt;</code> to receive callouts you missed in the last 10 minutes.</p>
 
-  <h2>Examples</h2>
-  <p>JavaScript (Node 22+):</p>
-  <pre>const ws = new WebSocket("wss://api.callouts.wtf/v1/stream", {headers: {Authorization: "Bearer " + process.env.CALLOUTS_KEY}});
-ws.onopen = () =&gt; ws.send(JSON.stringify({type: "subscribe", all: false, kinds: ["original"]}));
-ws.onmessage = (m) =&gt; { const e = JSON.parse(m.data); if (e.type === "callout") console.log(e.caller.handle, e.token.mint); };</pre>
-  <p>Python (<code>pip install websockets</code>):</p>
-  <pre>import asyncio, json, os, websockets
+  <h2 id="examples">Examples</h2>
+  <p>Set your key in the <code>CALLOUTS_KEY</code> environment variable, then run one of these. Each prints the caller, the token and our end-to-end time.</p>
+  <div class="codetabs">
+  <div class="tablist" role="tablist" aria-label="Programming language">
+    <button type="button" role="tab" id="tab-python" aria-controls="panel-python" data-lang="python" aria-selected="true" tabindex="0">Python</button>
+    <button type="button" role="tab" id="tab-javascript" aria-controls="panel-javascript" data-lang="javascript" aria-selected="false" tabindex="-1">JavaScript</button>
+    <button type="button" role="tab" id="tab-typescript" aria-controls="panel-typescript" data-lang="typescript" aria-selected="false" tabindex="-1">TypeScript</button>
+    <button type="button" role="tab" id="tab-go" aria-controls="panel-go" data-lang="go" aria-selected="false" tabindex="-1">Go</button>
+    <button type="button" role="tab" id="tab-rust" aria-controls="panel-rust" data-lang="rust" aria-selected="false" tabindex="-1">Rust</button>
+    <button type="button" role="tab" id="tab-cli" aria-controls="panel-cli" data-lang="cli" aria-selected="false" tabindex="-1">Command line</button>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-python" aria-labelledby="tab-python" data-lang="python">
+    <p class="setup">pip install websockets</p>
+    <pre><code>import asyncio, json, os
+import websockets
+
+URL = "wss://api.callouts.wtf/v1/stream"
+HEADERS = {"Authorization": "Bearer " + os.environ["CALLOUTS_KEY"]}
 
 async def main():
-    headers = {"Authorization": "Bearer " + os.environ["CALLOUTS_KEY"]}
-    async with websockets.connect("wss://api.callouts.wtf/v1/stream", additional_headers=headers) as ws:
-        await ws.send(json.dumps({"type": "subscribe", "all": False, "kinds": ["original", "update"]}))
-        async for raw in ws:
-            e = json.loads(raw)
-            if e["type"] == "callout":
-                print(e["caller"]["handle"], e["token"]["mint"], e["sent_at"] - e["pump_created_at"], "ms")
+    # Reconnects automatically after a dropped connection.
+    async for ws in websockets.connect(URL, additional_headers=HEADERS):
+        try:
+            await ws.send(json.dumps({"type": "subscribe", "all": False, "kinds": ["original", "update"]}))
+            async for raw in ws:
+                e = json.loads(raw)
+                if e["type"] == "callout":
+                    print(e["caller"]["handle"], e["token"]["mint"], e["sent_at"] - e["pump_created_at"], "ms")
+        except websockets.ConnectionClosed:
+            continue
 
-asyncio.run(main())</pre>
+asyncio.run(main())</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-javascript" aria-labelledby="tab-javascript" data-lang="javascript" hidden>
+    <p class="setup">npm install ws  (save as stream.mjs, run: node stream.mjs)</p>
+    <pre><code>import WebSocket from "ws";
+
+function connect() {
+  const ws = new WebSocket("wss://api.callouts.wtf/v1/stream", {
+    headers: { Authorization: `Bearer ${process.env.CALLOUTS_KEY}` },
+  });
+  ws.on("open", () =&gt; {
+    ws.send(JSON.stringify({ type: "subscribe", all: false, kinds: ["original", "update"] }));
+  });
+  ws.on("message", (data) =&gt; {
+    const e = JSON.parse(data);
+    if (e.type === "callout") {
+      console.log(e.caller.handle, e.token.mint, e.sent_at - e.pump_created_at, "ms");
+    }
+  });
+  ws.on("close", () =&gt; setTimeout(connect, 1000)); // reconnect
+  ws.on("error", () =&gt; {}); // "close" follows every error
+}
+
+connect();</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-typescript" aria-labelledby="tab-typescript" data-lang="typescript" hidden>
+    <p class="setup">npm install ws @types/ws</p>
+    <pre><code>import WebSocket from "ws";
+
+interface Callout {
+  type: "callout";
+  source: "pumpfun";
+  kind: "original" | "update" | "repost" | "quote";
+  callout_id: string;
+  update_index: number;
+  caller: { handle: string | null; user_id: string | null; wallet: string };
+  token: { mint: string; chain: "solana" | "base" | "bsc" | "ethereum" | "robinhood" };
+  linked_callout_id: string | null;
+  pump_created_at: number;
+  sent_at: number;
+  fast: boolean;
+}
+
+function connect(): void {
+  const ws = new WebSocket("wss://api.callouts.wtf/v1/stream", {
+    headers: { Authorization: `Bearer ${process.env.CALLOUTS_KEY}` },
+  });
+  ws.on("open", () =&gt; {
+    ws.send(JSON.stringify({ type: "subscribe", all: false, kinds: ["original", "update"] }));
+  });
+  ws.on("message", (data) =&gt; {
+    const e = JSON.parse(data.toString());
+    if (e.type === "callout") {
+      const c = e as Callout;
+      console.log(c.caller.handle, c.token.mint, c.sent_at - c.pump_created_at, "ms");
+    }
+  });
+  ws.on("close", () =&gt; setTimeout(connect, 1000));
+  ws.on("error", () =&gt; {});
+}
+
+connect();</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-go" aria-labelledby="tab-go" data-lang="go" hidden>
+    <p class="setup">go get github.com/gorilla/websocket</p>
+    <pre><code>package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/gorilla/websocket"
+)
+
+type Event struct {
+	Type   string `json:"type"`
+	Kind   string `json:"kind"`
+	Caller struct {
+		Handle string `json:"handle"`
+		Wallet string `json:"wallet"`
+	} `json:"caller"`
+	Token struct {
+		Mint  string `json:"mint"`
+		Chain string `json:"chain"`
+	} `json:"token"`
+	PumpCreatedAt int64 `json:"pump_created_at"`
+	SentAt        int64 `json:"sent_at"`
+}
+
+func main() {
+	header := http.Header{"Authorization": {"Bearer " + os.Getenv("CALLOUTS_KEY")}}
+	for {
+		conn, _, err := websocket.DefaultDialer.Dial("wss://api.callouts.wtf/v1/stream", header)
+		if err != nil {
+			log.Println("connect:", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		conn.WriteJSON(map[string]any{"type": "subscribe", "all": false, "kinds": []string{"original", "update"}})
+		for {
+			var e Event
+			if err := conn.ReadJSON(&amp;e); err != nil {
+				log.Println("read:", err)
+				break
+			}
+			if e.Type == "callout" {
+				log.Println(e.Caller.Handle, e.Token.Mint, e.SentAt-e.PumpCreatedAt, "ms")
+			}
+		}
+		conn.Close()
+		time.Sleep(time.Second)
+	}
+}</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-rust" aria-labelledby="tab-rust" data-lang="rust" hidden>
+    <p class="setup">Cargo.toml: tokio = { version = &quot;1&quot;, features = [&quot;full&quot;] }, tokio-tungstenite = { version = &quot;0.24&quot;, features = [&quot;rustls-tls-webpki-roots&quot;] }, futures-util = &quot;0.3&quot;, serde_json = &quot;1&quot;</p>
+    <pre><code>use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::connect_async;
+use tokio_tungstenite::tungstenite::{client::IntoClientRequest, Message};
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut request = "wss://api.callouts.wtf/v1/stream".into_client_request()?;
+    let key = std::env::var("CALLOUTS_KEY")?;
+    request.headers_mut().insert("Authorization", format!("Bearer {key}").parse()?);
+    let (mut ws, _) = connect_async(request).await?;
+    ws.send(Message::Text(r#"{"type":"subscribe","all":false,"kinds":["original","update"]}"#.into())).await?;
+    while let Some(message) = ws.next().await {
+        if let Message::Text(text) = message? {
+            let e: serde_json::Value = serde_json::from_str(&amp;text)?;
+            if e["type"] == "callout" {
+                let ms = e["sent_at"].as_i64().unwrap_or(0) - e["pump_created_at"].as_i64().unwrap_or(0);
+                println!("{} {} {ms} ms", e["caller"]["handle"], e["token"]["mint"]);
+            }
+        }
+    }
+    Ok(())
+}</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="panel-cli" aria-labelledby="tab-cli" data-lang="cli" hidden>
+    <p class="setup">Quick test with websocat (brew install websocat / cargo install websocat), then paste the subscribe line</p>
+    <pre><code>websocat -H "Authorization: Bearer $CALLOUTS_KEY" wss://api.callouts.wtf/v1/stream
+{"type": "subscribe", "all": false, "kinds": ["original", "update"]}</code></pre>
+  </div>
+  </div>
   <p>Questions? Message the bot or the support contact shown in the bot.</p>
 </main>
 <footer class="site">© callouts.wtf · <a href="/terms.html">Terms</a> · Not affiliated with pump.fun.</footer>
+<script>
+(() => {
+  // One remembered language for the whole page (per-viewer convenience only).
+  const tabs = [...document.querySelectorAll(".tablist [role=tab]")];
+  function select(lang, focus) {
+    for (const t of tabs) {
+      const on = t.dataset.lang === lang;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      if (on && focus) t.focus();
+    }
+    try { localStorage.setItem("callouts-lang", lang); } catch (_) {}
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => select(t.dataset.lang, false));
+    t.addEventListener("keydown", (ev) => {
+      const step = ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : 0;
+      if (step) { ev.preventDefault(); select(tabs[(i + step + tabs.length) % tabs.length].dataset.lang, true); }
+    });
+  });
+  try { const saved = localStorage.getItem("callouts-lang"); if (saved && tabs.some(t => t.dataset.lang === saved)) select(saved, false); } catch (_) {}
+
+  // Copy button on every code block.
+  for (const pre of document.querySelectorAll("main pre")) {
+    const wrap = document.createElement("div");
+    wrap.className = "codeblock";
+    pre.before(wrap);
+    wrap.appendChild(pre);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "copy";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy code");
+    button.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(pre.textContent); button.textContent = "Copied"; }
+      catch (_) {
+        const r = document.createRange(); r.selectNodeContents(pre);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        button.textContent = "Press Ctrl+C";
+      }
+      setTimeout(() => { button.textContent = "Copy"; }, 1600);
+    });
+    wrap.appendChild(button);
+  }
+})();
+</script>
 </body>
 </html>
