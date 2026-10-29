@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API docs — callouts.wtf</title>
+<meta name="description" content="callouts.wtf WebSocket API: real-time Pump.fun callouts as JSON. Authentication, subscribe message, event format and examples.">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/"><img src="/assets/logo-64.png" alt="" width="36" height="36">callouts.wtf</a>
+  <nav class="links" aria-label="Main">
+    <a href="/#pricing">Pricing</a>
+    <a href="/docs.html" aria-current="page">API docs</a>
+    <a href="/pumpfun-callouts-api.html">Pump.fun Callouts API</a>
+    <a href="https://t.me/Calloutswtfbot">Telegram bot</a>
+  </nav>
+</header>
+<main>
+  <h1>WebSocket API</h1>
+  <p>Receive Pump.fun callouts in your own code the moment we see them. Available from the Builder plan; "every callout" mode from Pro.</p>
+
+  <h2>1. Get a key</h2>
+  <p>In <a href="https://t.me/Calloutswtfbot">@Calloutswtfbot</a>: 📬 Deliver To → 🔑 API key. The key is shown once — store it safely. Creating a new key beyond your plan's limit retires your oldest key.</p>
+
+  <h2>2. Connect</h2>
+  <pre>wss://api.callouts.wtf/v1/stream
+Authorization: Bearer &lt;your key&gt;</pre>
+  <p>One live connection per key; a new connection with the same key replaces the old one. The server sends a heartbeat ping every 15 seconds.</p>
+  <p>On connect you receive:</p>
+  <pre>{"type": "welcome", "plan": "pro", "all_callouts": true, "available": true}</pre>
+
+  <h2>3. Subscribe</h2>
+  <p>By default you receive the callers you added in the bot (originals and updates). Send a subscribe message to change what you get:</p>
+  <pre>{"type": "subscribe", "all": false, "kinds": ["original", "update", "repost", "quote"]}</pre>
+  <table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td><code>all</code></td><td><code>true</code> = every Pump.fun callout (Pro and Fast Lane). <code>false</code> = only your callers.</td></tr>
+    <tr><td><code>kinds</code></td><td>Any of <code>original</code>, <code>update</code>, <code>repost</code>, <code>quote</code>. Reposts and quotes need Builder or higher.</td></tr>
+  </table>
+
+  <h2>4. Callout events</h2>
+  <pre>{
+  "type": "callout",
+  "source": "pumpfun",
+  "kind": "original",
+  "callout_id": "8a0be443-e776-4f09-8fe3-d4eabccc60b7",
+  "update_index": 0,
+  "caller": {"handle": "EustazZ", "user_id": "6d1b989f-…", "wallet": "FqamE7xrah…"},
+  "token": {"mint": "DdYmLRMQLtoMqutPCapAHPYsrnVZxgNZB2ZG4eTBpump", "chain": "solana"},
+  "linked_callout_id": null,
+  "pump_created_at": 1793268320808,
+  "sent_at": 1793268320941,
+  "fast": true
+}</pre>
+  <table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td><code>kind</code></td><td><code>original</code>, <code>update</code> (the caller's own update on that callout), <code>repost</code> or <code>quote</code>.</td></tr>
+    <tr><td><code>update_index</code></td><td>0 for the original; 1, 2, … for the caller's updates.</td></tr>
+    <tr><td><code>token.chain</code></td><td><code>solana</code>, <code>base</code>, <code>bsc</code>, <code>ethereum</code> or <code>robinhood</code>.</td></tr>
+    <tr><td><code>linked_callout_id</code></td><td>For reposts and quotes: the callout they refer to.</td></tr>
+    <tr><td><code>pump_created_at</code></td><td>Pump.fun's own creation time (ms). <code>sent_at - pump_created_at</code> is our end-to-end time to you.</td></tr>
+    <tr><td><code>fast</code></td><td><code>true</code> when the callout came through the fast path.</td></tr>
+  </table>
+  <p>Each callout is sent once. If the service is unavailable you receive <code>{"type": "status", "source": "pumpfun", "available": false}</code>, and <code>true</code> when it is back.</p>
+
+  <h2>5. Catch-up (Pro and Fast Lane)</h2>
+  <p>Turn on catch-up in the bot (⚙️ Settings), then reconnect with <code>?since=&lt;ms timestamp&gt;</code> to receive callouts you missed in the last 10 minutes.</p>
+
+  <h2>Examples</h2>
+  <p>JavaScript (Node 22+):</p>
+  <pre>const ws = new WebSocket("wss://api.callouts.wtf/v1/stream", {headers: {Authorization: "Bearer " + process.env.CALLOUTS_KEY}});
+ws.onopen = () =&gt; ws.send(JSON.stringify({type: "subscribe", all: false, kinds: ["original"]}));
+ws.onmessage = (m) =&gt; { const e = JSON.parse(m.data); if (e.type === "callout") console.log(e.caller.handle, e.token.mint); };</pre>
+  <p>Python (<code>pip install websockets</code>):</p>
+  <pre>import asyncio, json, os, websockets
+
+async def main():
+    headers = {"Authorization": "Bearer " + os.environ["CALLOUTS_KEY"]}
+    async with websockets.connect("wss://api.callouts.wtf/v1/stream", additional_headers=headers) as ws:
+        await ws.send(json.dumps({"type": "subscribe", "all": False, "kinds": ["original", "update"]}))
+        async for raw in ws:
+            e = json.loads(raw)
+            if e["type"] == "callout":
+                print(e["caller"]["handle"], e["token"]["mint"], e["sent_at"] - e["pump_created_at"], "ms")
+
+asyncio.run(main())</pre>
+  <p>Questions? Message the bot or the support contact shown in the bot.</p>
+</main>
+<footer class="site">© callouts.wtf · <a href="/terms.html">Terms</a> · Not affiliated with pump.fun.</footer>
+</body>
+</html>

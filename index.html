@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>callouts.wtf — Pump.fun Callouts API</title>
-<meta name="description" content="Real-time Pump.fun callouts for any caller, delivered to Telegram, Discord and WebSocket.">
+<meta name="description" content="Real-time Pump.fun callouts for any caller, delivered to Telegram, Discord and a WebSocket API. Fast path from 130 ms. Pay in USDC.">
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo-32.png">
 <link rel="apple-touch-icon" href="/assets/logo-180.png">
+<link rel="stylesheet" href="/assets/site.css">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://callouts.wtf/">
 <meta property="og:title" content="callouts.wtf — Pump.fun Callouts API">
@@ -15,25 +16,100 @@
 <meta property="og:image" content="https://callouts.wtf/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://callouts.wtf/assets/og.png">
-<style>
-  :root { color-scheme: dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d12; color: #e8eaf0;
-         font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  main { padding: 24px 16px; text-align: center; max-width: 560px; }
-  img.logo { width: 128px; height: 128px; }
-  h1 { font-size: 2.4rem; margin: 12px 0 8px; }
-  p { color: #9aa3b2; margin: 0 0 24px; }
-  a.cta { display: inline-block; padding: 12px 22px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600;
-          background: linear-gradient(90deg, #2ee6ff, #3b5bff 55%, #b03cff); }
-  a.cta:focus-visible { outline: 2px solid #2ee6ff; outline-offset: 3px; }
-</style>
 </head>
 <body>
+<header class="site">
+  <a class="brand" href="/"><img src="/assets/logo-64.png" alt="" width="36" height="36">callouts.wtf</a>
+  <nav class="links" aria-label="Main">
+    <a href="#pricing">Pricing</a>
+    <a href="/docs.html">API docs</a>
+    <a href="/pumpfun-callouts-api.html">Pump.fun Callouts API</a>
+    <a href="https://t.me/Calloutswtfbot">Telegram bot</a>
+  </nav>
+</header>
 <main>
-  <img class="logo" src="/assets/logo-512.png" alt="callouts.wtf logo" width="128" height="128">
-  <h1>callouts.wtf</h1>
-  <p>Real-time Pump.fun callouts for any caller — Telegram, Discord and WebSocket. Full site coming soon.</p>
-  <a class="cta" href="https://t.me/Calloutswtfbot">Open the Telegram bot</a>
+  <div class="status-banner" id="status" role="status">Pump.fun callouts are currently unavailable — we're fixing it as soon as possible.</div>
+  <section class="hero">
+    <img class="logo" src="/assets/logo-512.png" alt="callouts.wtf logo" width="112" height="112">
+    <h1>Every Pump.fun callout,<br>the moment it's posted.</h1>
+    <p>Follow any Pump.fun caller and get their callouts in your Telegram, your Discord or your own code over a WebSocket — with fast-path callers from 130 ms.</p>
+    <a class="cta" href="https://t.me/Calloutswtfbot">Start free 1-day trial</a>
+    <a class="ghost" href="/docs.html">Read the API docs</a>
+  </section>
+
+  <section class="stats" aria-label="Speed">
+    <div class="stat"><b>from 130 ms</b><span>fast-path callers, from Pump to us</span></div>
+    <div class="stat"><b>~0.6 s</b><span>any other Pump.fun caller</span></div>
+    <div class="stat"><b>Any caller</b><span>not limited to a fixed list</span></div>
+    <div class="stat"><b>USDC</b><span>pay inside the Telegram bot</span></div>
+  </section>
+
+  <h2 id="pricing">Pricing</h2>
+  <div class="period" role="group" aria-label="Billing period">
+    <button type="button" data-period="monthly" aria-pressed="true">Monthly</button>
+    <button type="button" data-period="6m" aria-pressed="false">6 months −13%</button>
+    <button type="button" data-period="annual" aria-pressed="false">Annual −35%</button>
+  </div>
+  <div class="tiers" id="tiers"></div>
+  <p class="note">Custom: Fast Lane plus 90 USDC per month for each extra fast-path caller — pick the number in the bot. All plans start with a free 1-day trial (3 callers, Telegram). Payment in USDC on Solana.</p>
+
+  <h2>How it works</h2>
+  <table>
+    <tr><td><b>1. Open the bot</b></td><td>Start <a href="https://t.me/Calloutswtfbot">@Calloutswtfbot</a> and pick a plan. Your personal USDC wallet is shown right there.</td></tr>
+    <tr><td><b>2. Add callers</b></td><td>Send Pump.fun handles, profile links or wallets — one per line or separated by commas.</td></tr>
+    <tr><td><b>3. Choose where</b></td><td>The bot chat, your own Telegram group or channel, a Discord webhook, or the WebSocket API.</td></tr>
+  </table>
 </main>
+<footer class="site">© callouts.wtf · <a href="/terms.html">Terms</a> · <a href="/docs.html">API docs</a> · Not affiliated with pump.fun.</footer>
+<script>
+(() => {
+  const FALLBACK = [
+    {key:"starter",name:"Starter",prices:{monthly:84,"6m":438,annual:655},callers:25,fast_path:0,api:false,api_keys:0,all_callouts:false,reposts_quotes:false,catch_up:false,telegram_groups:1,discord_webhooks:1},
+    {key:"builder",name:"Builder",prices:{monthly:254,"6m":1326,annual:1981},callers:100,fast_path:0,api:true,api_keys:2,all_callouts:false,reposts_quotes:true,catch_up:false,telegram_groups:3,discord_webhooks:3},
+    {key:"pro",name:"Pro",prices:{monthly:764,"6m":3988,annual:5959},callers:null,fast_path:5,api:true,api_keys:5,all_callouts:true,reposts_quotes:true,catch_up:true,telegram_groups:10,discord_webhooks:10},
+    {key:"fastlane",name:"Fast Lane",prices:{monthly:2124,"6m":11087,annual:16567},callers:null,fast_path:20,api:true,api_keys:10,all_callouts:true,reposts_quotes:true,catch_up:true,telegram_groups:25,discord_webhooks:25}
+  ];
+  const PER = {monthly: "per month", "6m": "for 6 months", annual: "per year"};
+  let tiers = FALLBACK, period = "monthly";
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  function features(t) {
+    return [
+      t.callers == null ? "Unlimited callers" : `${t.callers} callers`,
+      t.fast_path ? `${t.fast_path} fast-path callers (from 130 ms)` : "Standard speed (~0.6 s)",
+      `Telegram bot + ${plural(t.telegram_groups, "group")}/channels`,
+      plural(t.discord_webhooks, "Discord webhook"),
+      t.api ? `WebSocket API (${plural(t.api_keys, "key")})` : "",
+      t.all_callouts ? "Every Pump.fun callout (API)" : "",
+      t.reposts_quotes ? "Reposts & quotes" : "",
+      t.catch_up ? "Catch-up after a disconnect" : ""
+    ].filter(Boolean);
+  }
+  function render() {
+    const root = document.getElementById("tiers");
+    root.innerHTML = "";
+    for (const t of tiers.filter(t => t.key !== "custom")) {
+      const card = document.createElement("article");
+      card.className = "tier";
+      const li = features(t).map(f => `<li>${f}</li>`).join("");
+      card.innerHTML = `<div class="bar"></div><h3>${t.name}</h3>
+        <div class="price">${Number(t.prices[period]).toLocaleString("en-US")} USDC</div>
+        <div class="per">${PER[period]}</div><ul>${li}</ul>
+        <a class="cta" href="https://t.me/Calloutswtfbot?start=plan_${t.key}">Select ${t.name}</a>`;
+      root.appendChild(card);
+    }
+  }
+  document.querySelectorAll(".period button").forEach(b => b.addEventListener("click", () => {
+    period = b.dataset.period;
+    document.querySelectorAll(".period button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  render();
+  fetch("https://api.callouts.wtf/public/pricing").then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && Array.isArray(d.tiers)) { tiers = d.tiers; render(); } }).catch(() => {});
+  fetch("https://api.callouts.wtf/public/status").then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && d.pumpfun && d.pumpfun.available === false) document.getElementById("status").style.display = "block"; })
+    .catch(() => {});
+})();
+</script>
 </body>
 </html>
